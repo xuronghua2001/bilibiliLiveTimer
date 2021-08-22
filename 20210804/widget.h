@@ -35,6 +35,10 @@ private slots:
     void on_exitAppAction();
     void on_showAbout();
     void iconIsActived(QSystemTrayIcon::ActivationReason reason);
+    void readFile(QString path);
+    void on_pushButton_4_clicked();
+    void on_listWidget_itemEntered(QListWidgetItem *item);
+    void on_no();
 signals:
     void muade();
 private:
