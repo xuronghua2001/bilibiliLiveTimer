@@ -49,6 +49,9 @@
          <property name="segmentStyle">
           <enum>QLCDNumber::Filled</enum>
          </property>
+         <property name="intValue" stdset="0">
+          <number>10</number>
+         </property>
         </widget>
        </item>
       </layout>
@@ -58,7 +61,7 @@
        <item>
         <widget class="QLabel" name="label_2">
          <property name="text">
-          <string>已自动请求次数:</string>
+          <string>已请求次数:</string>
          </property>
          <property name="scaledContents">
           <bool>true</bool>
@@ -94,7 +97,11 @@
         </widget>
        </item>
        <item>
-        <widget class="QListView" name="listView"/>
+        <widget class="QListView" name="listView">
+         <property name="editTriggers">
+          <set>QAbstractItemView::DoubleClicked</set>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -153,6 +160,13 @@ p, li { white-space: pre-wrap; }
         <number>5</number>
        </property>
        <item>
+        <widget class="QPushButton" name="pushButton_4">
+         <property name="text">
+          <string>编辑uid</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="pushButton">
          <property name="text">
           <string>check</string>
@@ -162,7 +176,7 @@ p, li { white-space: pre-wrap; }
        <item>
         <widget class="QPushButton" name="pushButton_2">
          <property name="text">
-          <string>开启自动检测</string>
+          <string>重置自动检测</string>
          </property>
         </widget>
        </item>
