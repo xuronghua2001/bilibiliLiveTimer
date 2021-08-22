@@ -1,5 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>b.png</file>
+        <file>sleep.png</file>
+        <file>exit.png</file>
+        <file>about.png</file>
     </qresource>
 </RCC>
