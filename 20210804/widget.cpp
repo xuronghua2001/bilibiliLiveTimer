@@ -11,41 +11,55 @@
 #include <QDesktopServices>
 #include <QPixmap>
 #include <QThread>
-static int sum,k,s,t,r,isNormal;
+#include <QUrl>
+static int sum,k,s,t,r,isNormal,err;
+bool bb=1;
 QString url,z=nullptr,aa,surl;
 QStringList nameList,liveList;
 QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
-    ui->pushButton_2->setEnabled(0);
+    liveList.clear();
+    QString path = QCoreApplication::applicationDirPath();
+    path+="/list.txt";
+    readFile(path);
     if (!timer->isActive())
-    {timer->start();
+    {
+    timer->start();
     timer_0->start();}
     ui->textEdit->clear();
     ui->listWidget->clear();
+    ui->label_5->setText("在线人数:");
+    if(bb)
     QMessageBox::information(nullptr,"提示","已经重新启动自动请求");
-    s=1;
+    s=1;//k=10;
 }
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Widget)
 {
     ui->setupUi(this);
-    ui->pushButton_2->setEnabled(0);
-    s=1;this->setMouseTracking(0);
+    s=1;ui->listWidget->setMouseTracking(1);
     connect(timer_1,SIGNAL(timeout()),this,SLOT(slot_changeIcon()));
     connect(ui->pushButton_2,SIGNAL(clicked()),this,SLOT(remake()));
     connect(timer, &QTimer::timeout, this, [&](){
-    up();
+        //if(l)
+        up();
     });
-    timer->start(10000);
-    k=10,t=0;isNormal = 1;
-    connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
 
-    timer_0->start(1000);
+    timer->start(10000);
+    k=10;t=0;isNormal = 1;aa="在线人数：";
+    connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
+    readFile(path);
+    timer_0->start(1000);
+
+}
+void Widget::readFile(QString path)
+{
+
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
@@ -83,6 +97,7 @@ void Widget::yaoLaiLe()
 {
     if (isHidden())
     timer_1->start(1000);
+    if(bb)
     QMessageBox::information(nullptr,"提示","在线人数发生变化\n请检查！");
 }
 void Widget::slot_changeIcon()
@@ -96,7 +111,6 @@ void Widget::slot_changeIcon()
         myTrayIcon ->setVisible(0);
     }
 }
-
 class atiNet : public QObject
 {
     Q_OBJECT
@@ -117,12 +131,9 @@ int atiNet::checkNetWorkOnline(QString url)
     QNetworkReply* reply = manager->get(request);
     connect(manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
     eventLoop.exec();
-    int i=reply->error();
+    err=reply->error();
     reply->deleteLater();
-    if (i==0)
-        return 1;
-    else
-        return 0;
+        return err;
 }
 void atiNet::replyFinished(QNetworkReply*r)
 {
@@ -145,12 +156,13 @@ void Widget::onTimerOut()
 {
      if(k>=0)
      {ui->lcdNumber_2->display(k);k--;}
-     else
-     {k=10;t++;ui->lcdNumber->display(t);}
+     if (k==0)
+     {k=10;ui->lcdNumber->display(t);}
 }
 Widget::~Widget()
 {
     delete ui;
+    exit(0);
 }
 void Widget::Sleep(int msec)
 {
@@ -169,7 +181,8 @@ void Widget::getURLImage(QListWidgetItem *LWI)
     connect(reply, &QNetworkReply::finished, [=]{
         QPixmap pixmap;
         pixmap.loadFromData(reply->readAll());
-        pixmap = pixmap.scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        pixmap = pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        if(reply->error())s=1;
         reply->deleteLater();
         if (LWI)
             LWI->setIcon(QIcon(pixmap));
@@ -177,7 +190,8 @@ void Widget::getURLImage(QListWidgetItem *LWI)
 }
 void Widget::up()
 {
-    if (atiNet::checkNetWorkOnline("https://www.baidu.com")){
+    t++;
+    if (!atiNet::checkNetWorkOnline("https://www.baidu.com")){
     sum=0;
     if(s)
     {
@@ -191,6 +205,11 @@ void Widget::up()
             url=url_prefix+num+url_suffix;
             QString html= atiNet::getHtml(url);
             if(html.indexOf("-412")!=-1)break;
+            int i=html.lastIndexOf("liveStatus");
+            QString uu=html.mid(i+21,50);
+            int nn=uu.lastIndexOf("title");
+            uu=uu.mid(-1,nn-2);
+            liveList<<uu;
             int j=html.lastIndexOf("sex");
             int jj=html.indexOf("face");
             surl=html.mid(jj+7,73);
@@ -201,14 +220,19 @@ void Widget::up()
                name=name.mid(a+2,-1);
             }
             if (name!=nullptr)
-            {ui->listWidget->addItem(name);
-            getURLImage(ui->listWidget->item(n));
+            {
+                ui->listWidget->addItem(name);ui->listWidget->update();ui->listWidget->setIconSize(QSize(30,30));
+            getURLImage(ui->listWidget->item(n));ui->listWidget->update();
             }Sleep(200+2*n);
-         }url.clear();
-        s=0;Sleep(2000);
+         }url.clear();s=0;
+        if(ui->listView->model()->rowCount()!=ui->listWidget->count())
+        {s=1;ui->listWidget->clear();}
+        Sleep(2000);
       }
+
     for (int n=0;n<ui->listView->model()->rowCount();n++)
         {
+
         if (n==0)
         z="在线人数：";
         QModelIndex Index=ui->listView->model()->index(n,0);
@@ -217,17 +241,20 @@ void Widget::up()
         QString html= atiNet::getHtml(url);
         int i=html.lastIndexOf("liveStatus");
         QString state=html.mid(i+12, 1);
-        QString uu=html.mid(i+21,50);
+        /*QString uu=html.mid(i+21,50);
         int nn=uu.lastIndexOf("title");
         uu=uu.mid(-1,nn-2);
-        liveList<<uu;
+        liveList<<uu;*/
         if(state.toInt()==2)
-            {   timer->stop();
-                timer_0->stop();
-                ui->pushButton_2->setEnabled(1);
+            {
+             timer->stop();
+             timer_0->stop();
+                //ui->pushButton_2->setEnabled(1);
+                if(bb)
                  QMessageBox::warning(nullptr,"提示","请求被拦截\n请过段时间后开启自动检测！\ncheck频繁以及uid过多会导致此问题");
-                 break;
+             break;
             }
+        if (s)break;
         int *ttk = new int[r];
         ttk[n]=state.toInt();
         if (ttk[n])
@@ -238,12 +265,15 @@ void Widget::up()
             z+=ui->listWidget->item(n)->text();
             }
         delete []ttk;
-        Sleep(400+80*n);
-        }
+        if(n!=r-1)
+        Sleep(300+64*n);
+        if(n==r-1)
+        Sleep(200);
+    }
     ui->textEdit->setText(z);
-    QString bb="在线人数：";
-    bb+=QString("%1").arg(sum);
-    ui->label_5->setText(bb);
+    QString rr="在线人数：";
+    rr+=QString("%1").arg(sum);
+    ui->label_5->setText(rr);
     if (aa!=z)
     yaoLaiLe();
     aa=z;
@@ -251,15 +281,18 @@ void Widget::up()
     else
         {
         timer->stop();timer_0->stop();
-        //timer->deleteLater();timer_0->deleteLater();
         ui->pushButton_2->setEnabled(1);
-        QMessageBox::information(nullptr,"提示","无法连接到互联网\n请检查电脑联网后继续！");
+        QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
+        if(bb)
+        QMessageBox::information(nullptr,"提示",e);
         }
+
 }
 void Widget::on_pushButton_clicked()
 {
     up();QMessageBox::warning(nullptr,"提示","已手动请求\n请不要频繁点击！");
 }
+
 void Widget::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
 {
     QDesktopServices::openUrl(QUrl(liveList.at(ui->listWidget->currentRow())));
@@ -277,8 +310,10 @@ void Widget::on_exitAppAction()
 }
 void Widget::on_showMainAction()
 {
+    bb=true;
     QApplication::setQuitOnLastWindowClosed(1);
-    myTrayIcon->deleteLater();timer_1->stop();
+    if(timer_1->isActive())timer_1->stop();
+    delete myTrayIcon;
     this->show();
 }
 void Widget::on_showAbout()
@@ -293,7 +328,8 @@ void Widget::iconIsActived(QSystemTrayIcon::ActivationReason reason)
     case QSystemTrayIcon::Trigger:
      {
        on_showMainAction();
-       timer_1->stop();timer_1->deleteLater();
+       if(timer_1->isActive())
+       {timer_1->stop();timer_1->deleteLater();}
        break;
      }
     case QSystemTrayIcon::DoubleClick:
@@ -305,17 +341,24 @@ void Widget::iconIsActived(QSystemTrayIcon::ActivationReason reason)
      break;
     }
   }
+void Widget::on_no()
+{
+   no_notice->setChecked(0);
+   if(bb==true)
+       {bb=false;no_notice->setText("已开启勿扰模式");}
+   else
+       {bb=true;no_notice->setText("勿扰模式");}
+}
 void Widget::on_pushButton_3_clicked()
 {
     QApplication::setQuitOnLastWindowClosed(0);
     this->hide();
     if (QSystemTrayIcon::isSystemTrayAvailable())
     {
-        mExitAction = new QAction(tr("退出"),this);//右键点图标之后的选项
-        mExitAction->setIcon(QIcon::fromTheme("application-exit"));
-        about=new QAction (tr("关于"),this);
-        about->setIcon(QIcon::fromTheme("help-about"));
-        no_notice=new QAction(tr("勿扰模式"),this);
+        mExitAction = new QAction(QIcon(":/exit.png"),tr("退出"),this);//右键点图标之后的选项
+        about=new QAction (QIcon(":/about.png"),tr("关于"),this);
+        no_notice=new QAction(QIcon(":/sleep.png"),tr("勿扰模式"),this);
+        connect(no_notice,SIGNAL(triggered()),this,SLOT(on_no()));
         myMenu = new QMenu();
         myMenu->addAction(mExitAction);
         myMenu->addAction(about);
@@ -328,9 +371,19 @@ void Widget::on_pushButton_3_clicked()
         myTrayIcon->setContextMenu(myMenu);
         myTrayIcon->show();}
         connect(about,SIGNAL(triggered()),this,SLOT(on_showAbout()));
-        //connect(no_notice,SIGNAL(triggered()),this,SLOT(event->hide()));
         connect(mExitAction,SIGNAL(triggered()),this,SLOT(on_exitAppAction()));
         connect(myTrayIcon , SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(iconIsActived(QSystemTrayIcon::ActivationReason)));
 }
-
+void Widget::on_pushButton_4_clicked()
+{
+    QString path = QCoreApplication::applicationDirPath();
+    path+="/list.txt";
+    QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+}
+void Widget::on_listWidget_itemEntered(QListWidgetItem *item)
+{
+    if(item!=nullptr){
+    QString s="打开";s+=item->text();s+="的直播间";
+    item->setToolTip(s);}
+}
 
