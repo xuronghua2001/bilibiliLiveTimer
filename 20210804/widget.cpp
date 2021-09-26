@@ -12,6 +12,7 @@
 #include <QPixmap>
 #include <QThread>
 #include <QUrl>
+#include <QDebug>
 static int sum,k,s,t,r,isNormal,err;
 bool bb=1;
 QString url,z=nullptr,aa,surl;
@@ -49,7 +50,7 @@ Widget::Widget(QWidget *parent)
     });
 
     timer->start(10000);
-    k=10;t=0;isNormal = 1;aa="在线人数：";
+    k=10;t=0;isNormal = 1;aa="目前在线：";
     connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
@@ -93,12 +94,32 @@ void Widget::readFile(QString path)
             this->on_exitAppAction();
         }
 }
+
 void Widget::yaoLaiLe()
 {
     if (isHidden())
     timer_1->start(1000);
-    if(bb)
-    QMessageBox::information(nullptr,"提示","在线人数发生变化\n请检查！");
+    QString off,on,ss;
+    QStringList offline,online,ima;
+    QStringList list1 = aa.split(QLatin1Char('\n'));
+    QStringList list2 = z.split(QLatin1Char('\n'));
+       for(QString &str:list1)
+       if(!list2.contains(str))
+           offline<<str;
+    for(QString &str:list2)
+    if(!list1.contains(str))
+        online<<str;
+    ima=list2;
+        qDebug()<<list1.size();qDebug()<<list2.size();
+    if(bb){
+        if(!offline.isEmpty())
+        {off=offline.join(",\n");
+        off+="下线了!";}
+        if(!online.isEmpty())
+        {on=online.join(",\n");
+        on+="上线了！";}
+        ss=on+off;
+    QMessageBox::information(nullptr,"提示","在线人数发生变化\n"+ss);}
 }
 void Widget::slot_changeIcon()
 {
@@ -219,9 +240,10 @@ void Widget::up()
                int a=name.lastIndexOf(":");
                name=name.mid(a+2,-1);
             }
+            ui->listWidget->setIconSize(QSize(30,30));
             if (name!=nullptr)
             {
-                ui->listWidget->addItem(name);ui->listWidget->update();ui->listWidget->setIconSize(QSize(30,30));
+                ui->listWidget->addItem(name);ui->listWidget->update();
             getURLImage(ui->listWidget->item(n));ui->listWidget->update();
             }Sleep(200+2*n);
          }url.clear();s=0;
@@ -234,7 +256,7 @@ void Widget::up()
         {
 
         if (n==0)
-        z="在线人数：";
+        z="目前在线：";
         QModelIndex Index=ui->listView->model()->index(n,0);
         QString uid=Index.data().toString();
         url=url_prefix+uid+url_suffix;
@@ -260,10 +282,13 @@ void Widget::up()
         if (ttk[n])
             {
             sum++;
-            ui->listWidget->setCurrentRow(n);
+            //ui->listWidget->setCurrentRow(n);
+            ui->listWidget->item(n)->setForeground(QColor(255,215,130));
             z+="\n";
             z+=ui->listWidget->item(n)->text();
             }
+        else
+            ui->listWidget->item(n)->setForeground(Qt::gray);
         delete []ttk;
         if(n!=r-1)
         Sleep(300+64*n);
@@ -281,7 +306,7 @@ void Widget::up()
     else
         {
         timer->stop();timer_0->stop();
-        ui->pushButton_2->setEnabled(1);
+        //ui->pushButton_2->setEnabled(1);
         QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
         if(bb)
         QMessageBox::information(nullptr,"提示",e);
