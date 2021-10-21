@@ -39,7 +39,9 @@ private slots:
     void on_pushButton_4_clicked();
     void on_listWidget_itemEntered(QListWidgetItem *item);
     void on_no();
-signals:
+    void on_checkBox_stateChanged(int arg1);
+
+  signals:
     void muade();
 private:
     QAction *mShowMainAction;
