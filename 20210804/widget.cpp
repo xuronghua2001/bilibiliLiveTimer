@@ -21,6 +21,7 @@ QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
+    ui->checkBox->click();
     liveList.clear();
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
@@ -48,7 +49,7 @@ Widget::Widget(QWidget *parent)
         //if(l)
         up();
     });
-
+    ui->checkBox->setEnabled(0);
     timer->start(10000);
     k=10;t=0;isNormal = 1;aa="目前在线：";
     connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
@@ -110,7 +111,7 @@ void Widget::yaoLaiLe()
     if(!list1.contains(str))
         online<<str;
     ima=list2;
-        qDebug()<<list1.size();qDebug()<<list2.size();
+        //qDebug()<<list1.size();qDebug()<<list2.size();
     if(bb){
         if(!offline.isEmpty())
         {off=offline.join(",\n");
@@ -118,7 +119,9 @@ void Widget::yaoLaiLe()
         if(!online.isEmpty())
         {on=online.join(",\n");
         on+="上线了！";}
-        ss=on+off;
+        ss=on+'\n'+off;
+        if(ui->checkBox->checkState())
+        {ui->checkBox->toggle();ui->checkBox->toggle();}
     QMessageBox::information(nullptr,"提示","在线人数发生变化\n"+ss);}
 }
 void Widget::slot_changeIcon()
@@ -154,6 +157,7 @@ int atiNet::checkNetWorkOnline(QString url)
     eventLoop.exec();
     err=reply->error();
     reply->deleteLater();
+
         return err;
 }
 void atiNet::replyFinished(QNetworkReply*r)
@@ -182,8 +186,11 @@ void Widget::onTimerOut()
 }
 Widget::~Widget()
 {
-    delete ui;
-    exit(0);
+  if(thread()->isRunning())
+    thread()->quit();
+  manager->deleteLater();
+  qApp->quit();
+    exit(0);delete ui;
 }
 void Widget::Sleep(int msec)
 {
@@ -247,8 +254,9 @@ void Widget::up()
             getURLImage(ui->listWidget->item(n));ui->listWidget->update();
             }Sleep(200+2*n);
          }url.clear();s=0;
+         ui->checkBox->setEnabled(1);
         if(ui->listView->model()->rowCount()!=ui->listWidget->count())
-        {s=1;ui->listWidget->clear();}
+        {s=1;ui->listWidget->clear();ui->checkBox->setEnabled(0);}
         Sleep(2000);
       }
 
@@ -410,5 +418,22 @@ void Widget::on_listWidget_itemEntered(QListWidgetItem *item)
     if(item!=nullptr){
     QString s="打开";s+=item->text();s+="的直播间";
     item->setToolTip(s);}
+}
+
+
+void Widget::on_checkBox_stateChanged(int arg1)
+{
+  qDebug()<<arg1;
+  int r=ui->listView->model()->rowCount();
+  if(arg1==2&&s==0)
+    for(int n=0;n<r;n++)
+    {
+      if(ui->listWidget->item(n)->foreground()!=QColor(255,215,130))
+      ui->listWidget->item(n)->setHidden(1);
+    }
+  else
+    for(int n=0;n<r;n++)
+  ui->listWidget->item(n)->setHidden(0);
+
 }
 
