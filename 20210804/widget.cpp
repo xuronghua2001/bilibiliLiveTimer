@@ -21,7 +21,7 @@ QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
-    ui->checkBox->click();
+
     liveList.clear();
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
@@ -35,6 +35,7 @@ void Widget::remake()
     ui->label_5->setText("在线人数:");
     if(bb)
     QMessageBox::information(nullptr,"提示","已经重新启动自动请求");
+    ui->checkBox->setEnabled(0);
     s=1;//k=10;
 }
 Widget::Widget(QWidget *parent)
@@ -65,7 +66,7 @@ void Widget::readFile(QString path)
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
-        timer->stop();timer_0->stop();//timer->deleteLater();timer_0->deleteLater();
+        timer->stop();timer_0->stop();
         QMessageBox::warning(nullptr,"提示","没有找到list.txt\n请检查文件后重新打开！");
         }
     QTextStream read(&file);
@@ -90,7 +91,7 @@ void Widget::readFile(QString path)
             nameList.clear();}
         else
         {
-            timer->stop();timer_0->stop();s=0;//timer->deleteLater();timer_0->deleteLater();
+            timer->stop();timer_0->stop();s=0;
             QMessageBox::information(nullptr,"提示","程序目录下的list.txt为空\ntxt编辑格式为每行一个uid，//后可以备注名称\n示例：672328094//然然");
             this->on_exitAppAction();
         }
@@ -111,7 +112,6 @@ void Widget::yaoLaiLe()
     if(!list1.contains(str))
         online<<str;
     ima=list2;
-        //qDebug()<<list1.size();qDebug()<<list2.size();
     if(bb){
         if(!offline.isEmpty())
         {off=offline.join(",\n");
@@ -119,6 +119,9 @@ void Widget::yaoLaiLe()
         if(!online.isEmpty())
         {on=online.join(",\n");
         on+="上线了！";}
+        if(on==nullptr)
+        ss=on+off;
+        else
         ss=on+'\n'+off;
         if(ui->checkBox->checkState())
         {ui->checkBox->toggle();ui->checkBox->toggle();}
@@ -174,6 +177,7 @@ QString  atiNet::getHtml(QString url)
        connect(manager, SIGNAL(finished(QNetworkReply*)),&eventLoop, SLOT(quit()));
        eventLoop.exec();       //block until finish
        responseData = reply->readAll();
+       err=reply->error();
        reply->deleteLater();eventLoop.deleteLater();
        return QString(responseData);
 }
@@ -188,7 +192,7 @@ Widget::~Widget()
 {
   if(thread()->isRunning())
     thread()->quit();
-  manager->deleteLater();
+  delete manager;
   qApp->quit();
     exit(0);delete ui;
 }
@@ -210,7 +214,8 @@ void Widget::getURLImage(QListWidgetItem *LWI)
         QPixmap pixmap;
         pixmap.loadFromData(reply->readAll());
         pixmap = pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        if(reply->error())s=1;
+        if(reply->error())
+        {s=1;err=reply->error();}
         reply->deleteLater();
         if (LWI)
             LWI->setIcon(QIcon(pixmap));
@@ -256,7 +261,7 @@ void Widget::up()
          }url.clear();s=0;
          ui->checkBox->setEnabled(1);
         if(ui->listView->model()->rowCount()!=ui->listWidget->count())
-        {s=1;ui->listWidget->clear();ui->checkBox->setEnabled(0);}
+        {s=1;ui->listWidget->clear();}
         Sleep(2000);
       }
 
@@ -281,7 +286,9 @@ void Widget::up()
              timer_0->stop();
                 //ui->pushButton_2->setEnabled(1);
                 if(bb)
-                 QMessageBox::warning(nullptr,"提示","请求被拦截\n请过段时间后开启自动检测！\ncheck频繁以及uid过多会导致此问题");
+             {
+               ui->checkBox->setEnabled(0);
+               QMessageBox::warning(nullptr,"提示","请求被拦截\n请过段时间后开启自动检测！\ncheck频繁以及uid过多会导致此问题");}
              break;
             }
         if (s)break;
@@ -303,6 +310,7 @@ void Widget::up()
         if(n==r-1)
         Sleep(200);
     }
+    if(ui->checkBox->checkState()){ui->checkBox->toggle();ui->checkBox->toggle();}
     ui->textEdit->setText(z);
     QString rr="在线人数：";
     rr+=QString("%1").arg(sum);
@@ -313,9 +321,21 @@ void Widget::up()
     }
     else
         {
+      QString tc;
+      switch (err) {
+      case 2:
+        tc="远程服务器在接收和处理整个回复之前过早关闭了连接";
+      case 3:
+        tc="未找到远程主机名（无效主机名）";
+      case 4:
+        tc="与远程服务器的连接超时";
+      default :
+        tc="检测到与服务器响应相关的未知错误";
+
+      }
         timer->stop();timer_0->stop();
         //ui->pushButton_2->setEnabled(1);
-        QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
+        QString e="错误代码:"+QString::number(err)+"\n"+tc+"\n无法连接到互联网\n请检查电脑联网后继续！";
         if(bb)
         QMessageBox::information(nullptr,"提示",e);
         }
@@ -339,6 +359,7 @@ void Widget::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
 }*/
 void Widget::on_exitAppAction()
 {
+    delete manager;
     exit(0);
 }
 void Widget::on_showMainAction()
@@ -351,7 +372,9 @@ void Widget::on_showMainAction()
 }
 void Widget::on_showAbout()
 {
-    QMessageBox::about(nullptr,"关于","BUG Reporting:https://github.com/xuronghua2001/bilibili/issues/new\nEmail:xuronghua2001@outlook.com");
+  QString link="https://github.com/xuronghua2001/bilibili/issues/new";
+  QString msg = "BUG Reporting:<a href='https://github.com/xuronghua2001/bilibiliLiveTimer/issues'>Github</a><br>Update:     <a href='https://download.csdn.net/download/duckSoup_2001/20817924'>CSDN</a><br>E-mail:xuronghua2001@outlook.com" ;
+    QMessageBox::about(nullptr,"关于",msg);
 }
 void Widget::iconIsActived(QSystemTrayIcon::ActivationReason reason)
   {
@@ -400,7 +423,7 @@ void Widget::on_pushButton_3_clicked()
         myTrayIcon->setIcon(QIcon(":/b.png"));
         myTrayIcon->setToolTip(tr("bilibili直播实时提醒"));
         QApplication::processEvents();
-        myTrayIcon->showMessage("托盘","托盘管理",QSystemTrayIcon::Information,1000);
+        myTrayIcon->showMessage("托盘","托盘管理",QSystemTrayIcon::Information,10000);
         myTrayIcon->setContextMenu(myMenu);
         myTrayIcon->show();}
         connect(about,SIGNAL(triggered()),this,SLOT(on_showAbout()));
@@ -423,7 +446,7 @@ void Widget::on_listWidget_itemEntered(QListWidgetItem *item)
 
 void Widget::on_checkBox_stateChanged(int arg1)
 {
-  qDebug()<<arg1;
+  if(ui->listWidget->item(0)!=nullptr){
   int r=ui->listView->model()->rowCount();
   if(arg1==2&&s==0)
     for(int n=0;n<r;n++)
@@ -434,6 +457,6 @@ void Widget::on_checkBox_stateChanged(int arg1)
   else
     for(int n=0;n<r;n++)
   ui->listWidget->item(n)->setHidden(0);
-
+  }
 }
 
