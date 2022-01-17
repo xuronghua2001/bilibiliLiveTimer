@@ -10,8 +10,11 @@
     <height>414</height>
    </rect>
   </property>
+  <property name="cursor">
+   <cursorShape>ArrowCursor</cursorShape>
+  </property>
   <property name="windowTitle">
-   <string>bilibili直播实时提醒</string>
+   <string>bilibili直播实时提醒3.0</string>
   </property>
   <property name="windowIcon">
    <iconset resource="img.qrc">
@@ -50,11 +53,24 @@
           <enum>QLCDNumber::Filled</enum>
          </property>
          <property name="intValue" stdset="0">
-          <number>10</number>
+          <number>3</number>
          </property>
         </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QProgressBar" name="progressBar">
+       <property name="value">
+        <number>0</number>
+       </property>
+       <property name="textVisible">
+        <bool>true</bool>
+       </property>
+       <property name="invertedAppearance">
+        <bool>false</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
