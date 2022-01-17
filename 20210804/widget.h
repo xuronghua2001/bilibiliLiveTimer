@@ -6,6 +6,11 @@
 #include <QStringListModel>
 #include <QListWidgetItem>
 #include <QSystemTrayIcon>
+#include <QPixmap>
+#include "MyThread.h"
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -20,16 +25,18 @@ public:
     QTimer *timer=new QTimer(this);
     QTimer *timer_0=new QTimer(this);
     QTimer *timer_1=new QTimer(this);
+    void dealSignal();//处理子线程响应函数，
+    void dealClose();//关闭线程响应
+  public slots:
+    void getURLImage();
 private slots:
-    void Sleep(int msec);
-    void getURLImage(QListWidgetItem *LWI);
     void slot_changeIcon();
     void onTimerOut();
     void on_pushButton_clicked();
     void up();
     void yaoLaiLe();
     void remake();
-    void on_listWidget_itemDoubleClicked(QListWidgetItem *item);
+    void on_listWidget_itemDoubleClicked();
     void on_pushButton_3_clicked();
     void on_showMainAction();
     void on_exitAppAction();
@@ -40,9 +47,11 @@ private slots:
     void on_listWidget_itemEntered(QListWidgetItem *item);
     void on_no();
     void on_checkBox_stateChanged(int arg1);
+    void finishedSlot();
 
   signals:
-    void muade();
+    void startThread();//开启线程信号
+    void readyRead();
 private:
     QAction *mShowMainAction;
     QMenu *myMenu;
@@ -52,5 +61,8 @@ private:
     QSystemTrayIcon *myTrayIcon;
     QStringListModel *model;
     Ui::Widget *ui;
+    MyThread *myT;
+    QThread *thread;
+    QNetworkReply *m_Reply;
 };
 #endif // WIDGET_H
