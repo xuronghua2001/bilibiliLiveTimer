@@ -9,20 +9,22 @@
 //#include <QClipboard>
 #include <QIcon>
 #include <QDesktopServices>
-#include <QPixmap>
 #include <QThread>
 #include <QUrl>
 #include <QDebug>
-static int sum,k,s,t,r,isNormal,err;
-bool bb=1;
-QString url,z=nullptr,aa,surl;
-QStringList nameList,liveList;
+#include <QIODevice>
+#include <QVector>
+static int sum,k,t,isNormal,err;
+bool bb=1;QVector<int> qv,pv;
+static int bian=0,sss=0;static int s=1,ii=-1;
+QString url,z,aa,nitian,zzz,surl;
+QStringList uidList,nameList,liveList;
 QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
-
-    liveList.clear();
+  manager->clearAccessCache();s=1;bian=0;sum=0;zzz=nullptr;
+  nameList.clear();liveList.clear();uidList.clear();pv.clear();
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
     readFile(path);
@@ -30,13 +32,13 @@ void Widget::remake()
     {
     timer->start();
     timer_0->start();}
-    ui->textEdit->clear();
+    ui->textEdit->setText("目前在线:");
     ui->listWidget->clear();
     ui->label_5->setText("在线人数:");
     if(bb)
     QMessageBox::information(nullptr,"提示","已经重新启动自动请求");
     ui->checkBox->setEnabled(0);
-    s=1;//k=10;
+    s=1;
 }
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
@@ -46,23 +48,102 @@ Widget::Widget(QWidget *parent)
     s=1;ui->listWidget->setMouseTracking(1);
     connect(timer_1,SIGNAL(timeout()),this,SLOT(slot_changeIcon()));
     connect(ui->pushButton_2,SIGNAL(clicked()),this,SLOT(remake()));
-    connect(timer, &QTimer::timeout, this, [&](){
-        //if(l)
-        up();
-    });
+   // connect(timer, SIGNAL(timeout()), this,SLOT(up()));
     ui->checkBox->setEnabled(0);
+    ui->progressBar->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     timer->start(10000);
-    k=10;t=0;isNormal = 1;aa="目前在线：";
+    k=3;t=0;isNormal = 1;aa=nullptr;
     connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
     readFile(path);
     timer_0->start(1000);
+    myT = new MyThread;
 
+    thread = new QThread(this);
+
+    myT->moveToThread(thread);
+
+    connect(myT, &MyThread::mySignal, this, &Widget::dealSignal);
+
+    connect(this, &Widget::startThread,myT, &MyThread::myTimeout);
+    //当窗口销毁时，关闭线程
+    connect(this,&Widget::destroyed, this, &Widget::dealClose);
+    ui->pushButton->clicked(1);
+}
+void Widget::dealSignal()
+{
+  int n=ui->listView->model()->rowCount();
+  if(n<=bian)
+  {bian=0;sum=0;s=0;zzz=z;z=nullptr;pv=qv;qv.clear();}
+  QModelIndex Index=ui->listView->model()->index(bian,0);
+  QString num=Index.data().toString();
+    QUrl url("https://api.bilibili.com/x/space/acc/info?mid="+num+"&jsonp=jsonp");
+    m_Reply = manager->get(QNetworkRequest(url));
+    connect(m_Reply,SIGNAL(finished()),this,SLOT(finishedSlot()));
+}
+void Widget::finishedSlot()
+{
+  m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+  m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+  if(m_Reply->error() == QNetworkReply::NoError)
+  {int p;
+    QByteArray bytes;
+    bytes.resize(10000);
+    while(!m_Reply->atEnd()/*bytes==nullptr*/)
+      bytes += m_Reply->readAll();
+    m_Reply->abort();m_Reply->deleteLater();
+    const QByteArray cat=bytes;
+    QString string =QString::fromUtf8(cat,cat.size());
+    if(s){
+     // m_Reply = manager->get(QNetworkRequest(QUrl("https://asoulcnki.asia/rank")));
+    int i=string.lastIndexOf("liveStatus");
+      ii=i;
+//      qDebug()<<"i:"<<i;qDebug()<<string;
+    int j=string.lastIndexOf("sex");
+    QString name=string.mid(j-20,17);
+    if (name.lastIndexOf(":")!=-1)
+    {
+      int a=name.lastIndexOf(":");
+      name=name.mid(a+2,-1);
+    }
+    nameList<<name;
+    QString live;
+    QString uu=string.mid(i+21,50);
+    int nn=uu.lastIndexOf("title");
+    live=uu.mid(-1,nn-2);
+    liveList<<live;//qDebug()<<live;
+    int jj=string.indexOf("face");
+    surl=string.mid(jj+7,73);
+    m_Reply = manager->get(QNetworkRequest(surl));
+    connect(m_Reply,SIGNAL(readyRead()),this,SLOT(getURLImage()));
+    }
+    int i=string.lastIndexOf("liveStatus");//qDebug()<<"i:"<<i;
+    QString q=string.mid(i+12,1);
+     p=q.toInt();//qDebug()<<"status:"<<p;
+   if(p&&i)
+     {z+=nameList.at(bian).data();qv.append(bian);
+     z+='\n';sum++;//qDebug()<<z;
+   }
+  }
+  else
+    {err=m_Reply->error();Widget::dealClose();}
+  bian++; //  qDebug()<<zzz; qDebug()<<"df:"<<bian;
+}
+//网络信号结束响应
+void Widget::dealClose()
+{
+    if(thread->isRunning() == false)//判断线程是否终止
+    {
+        return;
+    }
+    myT->setFlag(true);
+    thread->quit();
+    thread->wait();//将等待线程完成本次响应操作后终止
+    delete myT;
 }
 void Widget::readFile(QString path)
 {
-
     QFile file(path);
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
@@ -81,22 +162,21 @@ void Widget::readFile(QString path)
            if(line.lastIndexOf("//"))
            {int i=line.lastIndexOf("/");
                line=line.mid(0,i-1);}
-           nameList<<line;}
+           uidList<<line;}
         }
         file.close();
-        if (!nameList.isEmpty())
+        if (!uidList.isEmpty())
         {
-            model = new QStringListModel(nameList);
-            ui->listView->setModel(model);
-            nameList.clear();}
+            model = new QStringListModel(uidList);
+          ui->listView->setModel(model);
+            uidList.clear();}
         else
         {
-            timer->stop();timer_0->stop();s=0;
+            timer->stop();timer_0->stop();s=1;
             QMessageBox::information(nullptr,"提示","程序目录下的list.txt为空\ntxt编辑格式为每行一个uid，//后可以备注名称\n示例：672328094//然然");
             this->on_exitAppAction();
         }
 }
-
 void Widget::yaoLaiLe()
 {
     if (isHidden())
@@ -104,7 +184,7 @@ void Widget::yaoLaiLe()
     QString off,on,ss;
     QStringList offline,online,ima;
     QStringList list1 = aa.split(QLatin1Char('\n'));
-    QStringList list2 = z.split(QLatin1Char('\n'));
+    QStringList list2 = zzz.split(QLatin1Char('\n'));
        for(QString &str:list1)
        if(!list2.contains(str))
            offline<<str;
@@ -129,7 +209,7 @@ void Widget::yaoLaiLe()
 }
 void Widget::slot_changeIcon()
 {
-    //q=QIcon(":/b.png");
+   //q=QIcon(":/b.png");
     if(isNormal){
         isNormal = 0;
         myTrayIcon ->setVisible(1);
@@ -138,218 +218,88 @@ void Widget::slot_changeIcon()
         myTrayIcon ->setVisible(0);
     }
 }
-class atiNet : public QObject
-{
-    Q_OBJECT
-public:
-    explicit atiNet();
-     static QString  getHtml(QString url);
-     static int checkNetWorkOnline(QString);
-
-signals:
-public slots:
-     void replyFinished(QNetworkReply*);
-};
-int atiNet::checkNetWorkOnline(QString url)
-{
-    QNetworkRequest request;
-    QEventLoop eventLoop;
-    request.setUrl(QUrl(url));
-    QNetworkReply* reply = manager->get(request);
-    connect(manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
-    eventLoop.exec();
-    err=reply->error();
-    reply->deleteLater();
-
-        return err;
-}
-void atiNet::replyFinished(QNetworkReply*r)
-{
-
-     r->deleteLater();
-}
-QString  atiNet::getHtml(QString url)
-{
-       QNetworkReply *reply = manager->get(QNetworkRequest(QUrl(url)));
-//       reply->deleteLater();
-       QByteArray responseData;
-       QEventLoop eventLoop;
-       connect(manager, SIGNAL(finished(QNetworkReply*)),&eventLoop, SLOT(quit()));
-       eventLoop.exec();       //block until finish
-       responseData = reply->readAll();
-       err=reply->error();
-       reply->deleteLater();eventLoop.deleteLater();
-       return QString(responseData);
-}
 void Widget::onTimerOut()
-{
+{ui->progressBar->setTextVisible(true);
+     ui->lcdNumber->display(myT->id);
+     ui->progressBar->setValue(100*(double(bian)/ui->listView->model()->rowCount()));
+     if(ui->listWidget->item(bian))
+       ui->progressBar->setFormat(ui->listWidget->item(bian)->text());
+     if(ui->progressBar->value())up();
      if(k>=0)
      {ui->lcdNumber_2->display(k);k--;}
-     if (k==0)
-     {k=10;ui->lcdNumber->display(t);}
+     if (k<0)
+     k=3;
 }
 Widget::~Widget()
 {
-  if(thread()->isRunning())
-    thread()->quit();
   delete manager;
   qApp->quit();
-    exit(0);delete ui;
+    exit(0);
+  delete ui;
 }
-void Widget::Sleep(int msec)
+void Widget::getURLImage()
 {
-    qint64 dieTime = QDateTime::currentDateTime().toMSecsSinceEpoch();
-    while( QDateTime::currentDateTime().toMSecsSinceEpoch()-dieTime < msec )
-    {
-        QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents,100);
-        QThread::msleep(1);
-    }
-}
-void Widget::getURLImage(QListWidgetItem *LWI)
-{
-    QNetworkRequest request;
-    request.setUrl(QUrl(surl));
-    QNetworkReply *reply = manager->get(request);
-    connect(reply, &QNetworkReply::finished, [=]{
+  m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
+  m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
+  if(m_Reply->error() == QNetworkReply::NoError)
+  {
+    connect(m_Reply, &QNetworkReply::finished, [=]{
         QPixmap pixmap;
-        pixmap.loadFromData(reply->readAll());
+        if(pixmap.loadFromData(m_Reply->readAll())){
         pixmap = pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        if(reply->error())
-        {s=1;err=reply->error();}
-        reply->deleteLater();
-        if (LWI)
-            LWI->setIcon(QIcon(pixmap));
-    });surl.clear();
+          pixmap.save(/*QCoreApplication::applicationDirPath()+'/'+*/QString::number(bian)+".jpg",nullptr,-1);}
+    });
+}
+  else
+        {s=1;err=m_Reply->error();}
+//m_Reply->deleteLater();
 }
 void Widget::up()
-{
-    t++;
-    if (!atiNet::checkNetWorkOnline("https://www.baidu.com")){
-    sum=0;
-    if(s)
-    {
-        r=ui->listView->model()->rowCount();
-        for (int n=0;n<ui->listView->model()->rowCount();++n)
-        {
-            QModelIndex Index=ui->listView->model()->index(n,0);
-            QString num=Index.data().toString();
-            url_prefix="https://api.bilibili.com/x/space/acc/info?mid=";
-            url_suffix="&jsonp=jsonp";
-            url=url_prefix+num+url_suffix;
-            QString html= atiNet::getHtml(url);
-            if(html.indexOf("-412")!=-1)break;
-            int i=html.lastIndexOf("liveStatus");
-            QString uu=html.mid(i+21,50);
-            int nn=uu.lastIndexOf("title");
-            uu=uu.mid(-1,nn-2);
-            liveList<<uu;
-            int j=html.lastIndexOf("sex");
-            int jj=html.indexOf("face");
-            surl=html.mid(jj+7,73);
-            QString name=html.mid(j-20,17);
-            if (name.lastIndexOf(":")!=-1)
-            {
-               int a=name.lastIndexOf(":");
-               name=name.mid(a+2,-1);
-            }
-            ui->listWidget->setIconSize(QSize(30,30));
-            if (name!=nullptr)
-            {
-                ui->listWidget->addItem(name);ui->listWidget->update();
-            getURLImage(ui->listWidget->item(n));ui->listWidget->update();
-            }Sleep(200+2*n);
-         }url.clear();s=0;
-         ui->checkBox->setEnabled(1);
-        if(ui->listView->model()->rowCount()!=ui->listWidget->count())
-        {s=1;ui->listWidget->clear();}
-        Sleep(2000);
-      }
-
-    for (int n=0;n<ui->listView->model()->rowCount();n++)
-        {
-
-        if (n==0)
-        z="目前在线：";
-        QModelIndex Index=ui->listView->model()->index(n,0);
-        QString uid=Index.data().toString();
-        url=url_prefix+uid+url_suffix;
-        QString html= atiNet::getHtml(url);
-        int i=html.lastIndexOf("liveStatus");
-        QString state=html.mid(i+12, 1);
-        /*QString uu=html.mid(i+21,50);
-        int nn=uu.lastIndexOf("title");
-        uu=uu.mid(-1,nn-2);
-        liveList<<uu;*/
-        if(state.toInt()==2)
-            {
-             timer->stop();
-             timer_0->stop();
-                //ui->pushButton_2->setEnabled(1);
-                if(bb)
-             {
-               ui->checkBox->setEnabled(0);
-               QMessageBox::warning(nullptr,"提示","请求被拦截\n请过段时间后开启自动检测！\ncheck频繁以及uid过多会导致此问题");}
-             break;
-            }
-        if (s)break;
-        int *ttk = new int[r];
-        ttk[n]=state.toInt();
-        if (ttk[n])
-            {
-            sum++;
-            //ui->listWidget->setCurrentRow(n);
-            ui->listWidget->item(n)->setForeground(QColor(255,215,130));
-            z+="\n";
-            z+=ui->listWidget->item(n)->text();
-            }
-        else
-            ui->listWidget->item(n)->setForeground(Qt::gray);
-        delete []ttk;
-        if(n!=r-1)
-        Sleep(300+64*n);
-        if(n==r-1)
-        Sleep(200);
-    }
-    if(ui->checkBox->checkState()){ui->checkBox->toggle();ui->checkBox->toggle();}
-    ui->textEdit->setText(z);
+{ int n=ui->listView->model()->rowCount();//qDebug()<<pv;
+  if(bian>=n){
+    sss=sum;zzz=z;
+  }
+  if (!err){
+    if(s==0&&!ui->listWidget->item(0))
+    {ui->listWidget->addItems(nameList);ui->checkBox->setEnabled(1);
+      for(int n=1;n<=nameList.size();n++)
+      {ui->listWidget->item(n-1)->setIcon(QIcon(/*QCoreApplication::applicationDirPath()+'/'+*/QString::number(n)+".jpg"));
+        ui->listWidget->setIconSize(QSize(30,30));}}
+    if(!pv.isEmpty()&&ui->listWidget->item(0)){
+      for(int i=0;i<n;i++)
+        ui->listWidget->item(i)->setForeground(Qt::gray);
+    for(int i=0;i<pv.size();i++)
+        ui->listWidget->item(pv.at(i))->setForeground(QColor(255,215,130));}
+    if(ui->checkBox->checkState())
+    {ui->checkBox->toggle();ui->checkBox->toggle();}
+    if(s==0)
+    ui->textEdit->setText("目前在线:\n"+zzz);
+    else
+      ui->label_5->setText("在线人数："+QString::number(sum));
     QString rr="在线人数：";
-    rr+=QString("%1").arg(sum);
+    rr+=QString("%1").arg(sss);
     ui->label_5->setText(rr);
-    if (aa!=z)
+    if (aa!=zzz)
     yaoLaiLe();
-    aa=z;
+    aa=zzz;
     }
     else
-        {
-      QString tc;
-      switch (err) {
-      case 2:
-        tc="远程服务器在接收和处理整个回复之前过早关闭了连接";
-      case 3:
-        tc="未找到远程主机名（无效主机名）";
-      case 4:
-        tc="与远程服务器的连接超时";
-      default :
-        tc="检测到与服务器响应相关的未知错误";
-
-      }
-        timer->stop();timer_0->stop();
-        //ui->pushButton_2->setEnabled(1);
-        QString e="错误代码:"+QString::number(err)+"\n"+tc+"\n无法连接到互联网\n请检查电脑联网后继续！";
+    {
+      timer->stop();timer_0->stop();
+        QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
         if(bb)
         QMessageBox::information(nullptr,"提示",e);
-        }
-
+        }ui->listWidget->update();
 }
 void Widget::on_pushButton_clicked()
 {
-    up();QMessageBox::warning(nullptr,"提示","已手动请求\n请不要频繁点击！");
-}
+  thread->start();
+  emit startThread();
 
-void Widget::on_listWidget_itemDoubleClicked(QListWidgetItem *item)
+}
+void Widget::on_listWidget_itemDoubleClicked()
 {
     QDesktopServices::openUrl(QUrl(liveList.at(ui->listWidget->currentRow())));
-
 }
 /*void Widget::on_listWidget_itemClicked(QListWidgetItem *item)
 {
@@ -372,13 +322,11 @@ void Widget::on_showMainAction()
 }
 void Widget::on_showAbout()
 {
-  QString link="https://github.com/xuronghua2001/bilibili/issues/new";
   QString msg = "BUG Reporting:<a href='https://github.com/xuronghua2001/bilibiliLiveTimer/issues'>Github</a><br>Update:     <a href='https://download.csdn.net/download/duckSoup_2001/20817924'>CSDN</a><br>E-mail:xuronghua2001@outlook.com" ;
     QMessageBox::about(nullptr,"关于",msg);
 }
 void Widget::iconIsActived(QSystemTrayIcon::ActivationReason reason)
   {
-
     switch(reason)
     {
     case QSystemTrayIcon::Trigger:
@@ -421,7 +369,7 @@ void Widget::on_pushButton_3_clicked()
         myMenu->addAction(no_notice);
         myTrayIcon = new QSystemTrayIcon(this);
         myTrayIcon->setIcon(QIcon(":/b.png"));
-        myTrayIcon->setToolTip(tr("bilibili直播实时提醒"));
+        myTrayIcon->setToolTip(tr("bilibili直播实时提醒（多线程稳定）"));
         QApplication::processEvents();
         myTrayIcon->showMessage("托盘","托盘管理",QSystemTrayIcon::Information,10000);
         myTrayIcon->setContextMenu(myMenu);
@@ -438,12 +386,11 @@ void Widget::on_pushButton_4_clicked()
 }
 void Widget::on_listWidget_itemEntered(QListWidgetItem *item)
 {
+  ui->listWidget->setMouseTracking(1);
     if(item!=nullptr){
     QString s="打开";s+=item->text();s+="的直播间";
     item->setToolTip(s);}
 }
-
-
 void Widget::on_checkBox_stateChanged(int arg1)
 {
   if(ui->listWidget->item(0)!=nullptr){
