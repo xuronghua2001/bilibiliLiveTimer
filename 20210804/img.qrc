@@ -4,5 +4,6 @@
         <file>sleep.png</file>
         <file>exit.png</file>
         <file>about.png</file>
+        <file>Ubuntu.qss</file>
     </qresource>
 </RCC>
