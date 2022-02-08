@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>594</width>
-    <height>414</height>
+    <width>508</width>
+    <height>358</height>
    </rect>
   </property>
   <property name="cursor">
@@ -113,7 +113,7 @@
      <item>
       <widget class="QListView" name="listView">
        <property name="editTriggers">
-        <set>QAbstractItemView::DoubleClicked</set>
+        <set>QAbstractItemView::NoEditTriggers</set>
        </property>
       </widget>
      </item>
