@@ -37,6 +37,9 @@ private slots:
     void yaoLaiLe();
     void remake();
     void on_listWidget_itemDoubleClicked();
+    void on_listWidget_itemClicked();
+    void on_listView_clicked(QModelIndex index);
+    void on_listView_doubleClicked(QModelIndex index);
     void on_pushButton_3_clicked();
     void on_showMainAction();
     void on_exitAppAction();
