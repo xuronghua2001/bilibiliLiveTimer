@@ -23,8 +23,9 @@ QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
-  manager->clearAccessCache();s=1;bian=0;sum=0;zzz=nullptr;
+  manager->clearAccessCache();s=1;bian=0;sum=0;zzz=nullptr;z=nullptr;
   nameList.clear();liveList.clear();uidList.clear();pv.clear();
+  ui->progressBar->setFormat(nullptr);
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
     readFile(path);
@@ -38,7 +39,6 @@ void Widget::remake()
     if(bb)
     QMessageBox::information(nullptr,"提示","已经重新启动自动请求");
     ui->checkBox->setEnabled(0);
-    s=1;
     thread->start();
     emit startThread();
 }
@@ -47,7 +47,8 @@ Widget::Widget(QWidget *parent)
     , ui(new Ui::Widget)
 {
     ui->setupUi(this);
-    s=1;ui->listWidget->setMouseTracking(1);
+    ui->listWidget->setMouseTracking(1);
+    ui->lcdNumber->segmentStyle();ui->lcdNumber_2->segmentStyle();
     connect(timer_1,SIGNAL(timeout()),this,SLOT(slot_changeIcon()));
     connect(ui->pushButton_2,SIGNAL(clicked()),this,SLOT(remake()));
    // connect(timer, SIGNAL(timeout()), this,SLOT(up()));
@@ -175,13 +176,14 @@ void Widget::readFile(QString path)
             uidList.clear();}
         else
         {
-            timer->stop();timer_0->stop();s=1;
+            timer->stop();timer_0->stop();
             QMessageBox::information(nullptr,"提示","程序目录下的list.txt为空\ntxt编辑格式为每行一个uid，//后可以备注名称\n示例：672328094//然然");
             this->on_exitAppAction();
         }
 }
 void Widget::yaoLaiLe()
 {
+
     if (isHidden())
     timer_1->start(1000);
     QString off,on,ss;
@@ -222,12 +224,15 @@ void Widget::slot_changeIcon()
     }
 }
 void Widget::onTimerOut()
-{ui->progressBar->setTextVisible(true);
+{
+     if(s)
+     ui->label_5->setText("在线人数："+QString::number(sum));
+     ui->progressBar->setTextVisible(true);
      ui->lcdNumber->display(myT->id);
      ui->progressBar->setValue(100*(double(bian)/ui->listView->model()->rowCount()));
      if(ui->listWidget->item(bian))
        ui->progressBar->setFormat(ui->listWidget->item(bian)->text());
-     if(ui->progressBar->value())up();
+     if(ui->progressBar->value()/100){up();}
      if(k>=0)
      {ui->lcdNumber_2->display(k);k--;}
      if (k<0)
@@ -277,27 +282,29 @@ void Widget::additem()
 void Widget::up()
 { int n=ui->listView->model()->rowCount();
   if(bian>=n){
-    sss=sum;zzz=z;
+    sss=sum;zzz=z;pv=qv;
   }
   if (!err){
     if(n==ui->listWidget->count())
       ui->checkBox->setEnabled(1);
-    if(!pv.isEmpty()&&ui->listWidget->item(0)){
+    if(!pv.isEmpty()){
       for(int i=0;i<n;i++)
         ui->listWidget->item(i)->setForeground(Qt::gray);
     for(int i=0;i<pv.size();i++)
         ui->listWidget->item(pv.at(i))->setForeground(QColor(255,215,130));}
+    //ui->listWidget->update();
     if(ui->checkBox->checkState())
     {ui->checkBox->toggle();ui->checkBox->toggle();}
-    if(s==0)
+    //if(s==0)
     ui->textEdit->setText("目前在线:\n"+zzz);
-    else
-      ui->label_5->setText("在线人数："+QString::number(sum));
+    //if(s)
+    //  ui->label_5->setText("在线人数："+QString::number(sum));
     QString rr="在线人数：";
     rr+=QString("%1").arg(sss);
     ui->label_5->setText(rr);
     if (aa!=zzz)
     yaoLaiLe();
+    //ui->listWidget->update();
     aa=zzz;
     }
     else
@@ -314,9 +321,23 @@ void Widget::on_pushButton_clicked()
   emit startThread();
 
 }
+void Widget::on_listWidget_itemClicked()
+{
+  int row=ui->listWidget->currentRow();
+  QModelIndex Index = ui->listView->model()->index(row,0);
+  ui->listView->setCurrentIndex(Index);
+}
 void Widget::on_listWidget_itemDoubleClicked()
 {
     QDesktopServices::openUrl(QUrl(liveList.at(ui->listWidget->currentRow())));
+}
+void Widget::on_listView_clicked(QModelIndex index)
+{
+    ui->listWidget->setCurrentRow(index.row());
+}
+void Widget::on_listView_doubleClicked(QModelIndex index)
+{
+  QDesktopServices::openUrl(QUrl("https://space.bilibili.com/"+index.data().toString()));
 }
 /*void Widget::on_listWidget_itemClicked(QListWidgetItem *item)
 {
