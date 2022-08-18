@@ -80,41 +80,27 @@ QScrollArea {
 	color: white;
 	background-color:#f0f0f0;
 }
-QSlider::groove {
-	border-style: solid;
-	border-width: 1px;
-	border-color: rgb(255, 215, 130);
-}
-QSlider::groove:horizontal {
-	height: 5px;
-	background: rgb(246, 134, 86);
-}
-QSlider::groove:vertical {
-	width: 5px;
-	background: rgb(246, 134, 86);
-}
-QSlider::handle:horizontal {
-	background: rgb(253,253,253);
-	border-style: solid;
-	border-width: 1px;
-	border-color: rgb(207,207,207);
-	width: 12px;
-	margin: -5px 0;
-	border-radius: 7px;
-}
-QSlider::handle:vertical {
-	background: rgb(253,253,253);
-	border-style: solid;
-	border-width: 1px;
-	border-color: rgb(207,207,207);
-	height: 12px;
-	margin: 0 -5px;
-	border-radius: 7px;
-}
+
 QScrollBar:horizontal {
 	max-height: 20px;
 	border: 1px transparent;
 	margin: 0px 20px 0px 20px;
+}
+QScrollBar::right-arrow:horizontal {
+	border: 1px transparent grey;
+  	border-top-right-radius: 3px;
+	border-bottom-right-radius: 3px;
+  	width: 6px;
+  	height: 6px;
+  	background: rgb(255, 215, 130);
+}
+QScrollBar::left-arrow:horizontal {
+  	border: 1px transparent grey;
+  	border-bottom-left-radius: 3px;
+  	border-top-left-radius: 3px;
+  	width: 6px;
+  	height: 6px;
+  	background: rgb(255, 215, 130);
 }
 QScrollBar::handle:horizontal {
 	background: rgb(253,253,253);
@@ -122,38 +108,36 @@ QScrollBar::handle:horizontal {
 	border-radius: 7px;
 	min-width: 25px;
 }
-QScrollBar::handle:horizontal:hover {
-	background: rgb(253,253,253);
-	border: 1px solid rgb(255,150,60);
-	border-radius: 7px;
-	min-width: 25px;
-}
+
 QScrollBar::add-line:horizontal {
   	border: 1px solid rgb(207,207,207);
   	border-top-right-radius: 7px;
   	border-top-left-radius: 7px;
   	border-bottom-right-radius: 7px;
+                border-bottom-left-radius: 7px;
   	background: rgb(255, 255, 255);
   	width: 20px;
   	subcontrol-position: right;
   	subcontrol-origin: margin;
 }
 QScrollBar::add-line:horizontal:hover {
-  	border: 1px solid rgb(255,150,60);
+  	border: 1px solid rgb(255,215,130);
   	border-top-right-radius: 7px;
   	border-top-left-radius: 7px;
   	border-bottom-right-radius: 7px;
+                border-bottom-left-radius: 7px;
   	background: rgb(255, 255, 255);
   	width: 20px;
   	subcontrol-position: right;
   	subcontrol-origin: margin;
 }
 QScrollBar::add-line:horizontal:pressed {
-  	border: 1px solid grey;
+  	border: 1px solid rgb(255,215,130);
   	border-top-left-radius: 7px;
   	border-top-right-radius: 7px;
   	border-bottom-right-radius: 7px;
-  	background: rgb(231,231,231);
+                border-bottom-left-radius: 7px;
+  	background: rgb(255, 255, 255);
   	width: 20px;
   	subcontrol-position: right;
   	subcontrol-origin: margin;
@@ -163,13 +147,14 @@ QScrollBar::sub-line:horizontal {
   	border-top-right-radius: 7px;
   	border-top-left-radius: 7px;
   	border-bottom-left-radius: 7px;
+                border-bottom-left-radius: 7px;
   	background: rgb(255, 255, 255);
   	width: 20px;
   	subcontrol-position: left;
   	subcontrol-origin: margin;
 }
 QScrollBar::sub-line:horizontal:hover {
-  	border: 1px solid rgb(255,150,60);
+  	border: 1px solid rgb(255,215,130);
   	border-top-right-radius: 7px;
   	border-top-left-radius: 7px;
   	border-bottom-left-radius: 7px;
@@ -179,30 +164,23 @@ QScrollBar::sub-line:horizontal:hover {
   	subcontrol-origin: margin;
 }
 QScrollBar::sub-line:horizontal:pressed {
-  	border: 1px solid grey;
+  	border-color: rgb(255, 215, 130);
   	border-top-right-radius: 7px;
   	border-top-left-radius: 7px;
   	border-bottom-left-radius: 7px;
-  	background: rgb(231,231,231);
+  	background: rgb(230,230,230);
   	width: 20px;
   	subcontrol-position: left;
   	subcontrol-origin: margin;
 }
-QScrollBar::left-arrow:horizontal {
-  	border: 1px transparent grey;
-  	border-top-left-radius: 30px;
+
+QScrollBar::add-line:horizontal:pressed {
+  	border-color: rgb(255, 215, 130);
+  	border-top-left-radius: 3px;
   	border-bottom-left-radius: 3px;
   	width: 6px;
   	height: 6px;
-  	background: rgb(230,230,230);
-}
-QScrollBar::right-arrow:horizontal {
-	border: 1px transparent grey;
-	border-top-right-radius: 3px;
-	border-bottom-right-radius: 3px;
-  	width: 6px;
-  	height: 6px;
- 	background: rgb(230,230,230);
+  	background: rgb(255, 215, 130);
 }
 
 QScrollBar:vertical {
@@ -210,6 +188,7 @@ QScrollBar:vertical {
 	border: 1px transparent grey;
 	margin: 20px 0px 20px 0px;
 }
+
 QScrollBar::add-line:vertical {
 	border: 1px solid;
 	border-color: rgb(207,207,207);
@@ -228,7 +207,7 @@ QScrollBar::add-line:vertical:hover {
   	border-bottom-right-radius: 7px;
   	border-bottom-left-radius: 7px;
   	border-top-left-radius: 7px;
-        border-top-right-radius: 7px;
+                border-top-right-radius: 7px;
   	background: rgb(255, 255, 255);
   	height: 20px;
   	subcontrol-position: bottom;
