@@ -35,6 +35,7 @@ private slots:
     void on_pushButton_clicked();
     void up();
     void yaoLaiLe();
+    void ji();
     void remake();
     void on_listWidget_itemDoubleClicked();
     void on_listWidget_itemClicked();
