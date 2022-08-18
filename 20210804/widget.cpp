@@ -16,15 +16,14 @@
 #include <QVector>
 static int sum,k,t,isNormal,err;
 bool bb=1;QVector<int> qv,pv;
-static int bian=0,sss=0;static int s=1,ii=-1;
+static int bian=0,sss=0;static int s=1,ii=-1,ss=1;
 QString url,z,aa,nitian,zzz,surl;
 QStringList uidList,nameList,liveList;
-QString url_prefix,url_suffix;
 QNetworkAccessManager *manager = new QNetworkAccessManager();
 void Widget::remake()
 {
   manager->clearAccessCache();s=1;bian=0;sum=0;zzz=nullptr;z=nullptr;
-  nameList.clear();liveList.clear();uidList.clear();pv.clear();
+  nameList.clear();liveList.clear();uidList.clear();pv.clear();err=0;surl=nullptr;ss=1;
   ui->progressBar->setFormat(nullptr);
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
@@ -39,8 +38,9 @@ void Widget::remake()
     if(bb)
     QMessageBox::information(nullptr,"提示","已经重新启动自动请求");
     ui->checkBox->setEnabled(0);
-    thread->start();
+    myT->setFlag(false);
     emit startThread();
+    thread->start();
 }
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
@@ -51,11 +51,10 @@ Widget::Widget(QWidget *parent)
     ui->lcdNumber->segmentStyle();ui->lcdNumber_2->segmentStyle();
     connect(timer_1,SIGNAL(timeout()),this,SLOT(slot_changeIcon()));
     connect(ui->pushButton_2,SIGNAL(clicked()),this,SLOT(remake()));
-   // connect(timer, SIGNAL(timeout()), this,SLOT(up()));
     ui->checkBox->setEnabled(0);
     ui->progressBar->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     timer->start(10000);
-    k=3;t=0;isNormal = 1;aa=nullptr;
+    k=3;t=0;isNormal = 1;aa=nullptr;err=0;
     connect(timer_0, SIGNAL(timeout()), this, SLOT(onTimerOut()));
     QString path = QCoreApplication::applicationDirPath();
     path+="/list.txt";
@@ -75,6 +74,13 @@ Widget::Widget(QWidget *parent)
     ui->pushButton->clicked(1);
     connect(this,SIGNAL(ggooo()),this,SLOT(additem()));
 }
+void Widget::ji()
+{
+  timer->stop();timer_0->stop();myT->setFlag(true);ss=0;//m_Reply->abort();
+  QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
+  if(bb)
+    QMessageBox::information(nullptr,"提示",e);
+}
 void Widget::dealSignal()
 {
   int n=ui->listView->model()->rowCount();
@@ -83,11 +89,15 @@ void Widget::dealSignal()
   QModelIndex Index=ui->listView->model()->index(bian,0);
   QString num=Index.data().toString();
     QUrl url("https://api.bilibili.com/x/space/acc/info?mid="+num+"&jsonp=jsonp");
-    m_Reply = manager->get(QNetworkRequest(url));
+  m_Reply = manager->get(QNetworkRequest(url));
+
     connect(m_Reply,SIGNAL(finished()),this,SLOT(finishedSlot()));
 }
 void Widget::finishedSlot()
 {
+  err=m_Reply->error();qDebug()<<err;
+  if(m_Reply->error()&&ss)
+  ji();
   m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
   m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
   if(m_Reply->error() == QNetworkReply::NoError)
@@ -96,9 +106,13 @@ void Widget::finishedSlot()
     bytes.resize(10000);
     while(!m_Reply->atEnd()/*bytes==nullptr*/)
       bytes += m_Reply->readAll();
-    m_Reply->abort();m_Reply->deleteLater();
+
+    m_Reply->abort();
+
+    m_Reply->deleteLater();
     const QByteArray cat=bytes;
-    QString string =QString::fromUtf8(cat,cat.size());
+    QString string=nullptr;
+    string =QString::fromUtf8(cat,cat.size());
     if(s){
      // m_Reply = manager->get(QNetworkRequest(QUrl("https://asoulcnki.asia/rank")));
     int i=string.lastIndexOf("liveStatus");
@@ -118,7 +132,7 @@ void Widget::finishedSlot()
     live=uu.mid(-1,nn-2);
     liveList<<live;//qDebug()<<live;
     int jj=string.indexOf("face");
-    surl=string.mid(jj+7,73);
+    surl=string.mid(jj+7,73);//qDebug()<<surl<<err;
     m_Reply = manager->get(QNetworkRequest(surl));
     connect(m_Reply,SIGNAL(readyRead()),this,SLOT(getURLImage()));
     }
@@ -131,7 +145,7 @@ void Widget::finishedSlot()
    }
   }
   else
-    {err=m_Reply->error();Widget::dealClose();}
+    {err=m_Reply->error();}
   bian++; //  qDebug()<<zzz; qDebug()<<"df:"<<bian;
 }
 //网络信号结束响应
@@ -241,6 +255,7 @@ void Widget::onTimerOut()
 Widget::~Widget()
 {
   dealClose();
+  //delete m_Reply;
   delete manager;
   qApp->quit();
   delete ui;
@@ -250,15 +265,15 @@ void Widget::getURLImage()
 {
   m_Reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
   m_Reply->attribute(QNetworkRequest::RedirectionTargetAttribute);
-  if(m_Reply->error() == QNetworkReply::NoError)
+  if(!err)
   {
     connect(m_Reply, &QNetworkReply::finished, [=]{
-        QPixmap pixmap;
+      QPixmap pixmap;//qDebug()<<"tu"<<surl;
         if(pixmap.loadFromData(m_Reply->readAll())){
         pixmap = pixmap.scaled(100, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
           pixmap.save(QString::number(bian)+".jpg",nullptr,-1);
         emit ggooo();
-      }
+        }//m_Reply->abort();
     });
 }
   else
@@ -284,7 +299,7 @@ void Widget::up()
   if(bian>=n){
     sss=sum;zzz=z;pv=qv;
   }
-  if (!err){
+
     if(n==ui->listWidget->count())
       ui->checkBox->setEnabled(1);
     if(!pv.isEmpty()){
@@ -306,14 +321,8 @@ void Widget::up()
     yaoLaiLe();
     //ui->listWidget->update();
     aa=zzz;
-    }
-    else
-    {
-      timer->stop();timer_0->stop();
-        QString e="错误代码:"+QString::number(err)+"\n无法连接到互联网\n请检查电脑联网后继续！";
-        if(bb)
-        QMessageBox::information(nullptr,"提示",e);
-        }ui->listWidget->update();
+
+   ui->listWidget->update();
 }
 void Widget::on_pushButton_clicked()
 {
@@ -333,6 +342,7 @@ void Widget::on_listWidget_itemDoubleClicked()
 }
 void Widget::on_listView_clicked(QModelIndex index)
 {
+  if(ui->listWidget->item(index.row())!=nullptr)
     ui->listWidget->setCurrentRow(index.row());
 }
 void Widget::on_listView_doubleClicked(QModelIndex index)
@@ -347,6 +357,8 @@ void Widget::on_listView_doubleClicked(QModelIndex index)
 }*/
 void Widget::on_exitAppAction()
 {
+    dealClose();
+    delete m_Reply;
     delete manager;
     exit(0);
 }
